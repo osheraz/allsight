@@ -6,6 +6,7 @@
 *.pkl
 *.pickle
 *.p
+__pycache__/
 dataset/
 train/records/
 train/evaluation/
