@@ -1,0 +1,91 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="sim" default="false"/>
+  <arg name="usb_port" default="/dev/ttyUSB0" />
+  <arg name="usb_port_ft" default="ttyUSB1" />
+
+  <arg name="with_single_act" default="true"/>
+  <arg name="with_gripper" default="false"/>
+  <arg name="with_ft" default="true"/>
+  <arg name="with_finger" default="true"/>
+
+  <!-- startup ros_control for real robot -->
+  <group unless="$(arg sim)">
+    <include file="$(find open_manipulator_p_hw)/launch/open_manipulator_p_control.launch">
+      <arg name="usb_port" value="$(arg usb_port)"/>
+      <arg name="with_ft" value="$(arg with_ft)"/>
+      <arg name="with_gripper" value="$(arg with_gripper)"/>
+    </include>
+
+    <!-- Load Robotiq FT sensor  -->
+    <group if="$(arg with_ft)">
+      <node name="rq_stream_sensor" pkg="robotiq_force_torque_sensor" type="rq_stream_sensor_custom" respawn="false" output="screen" launch-prefix="bash -c 'sleep 10.0; $0 $@' "/>
+      <node name="rq_sensor" pkg="robotiq_force_torque_sensor" type="rq_sensor_custom" respawn="false" output="screen">
+                    <param name="serial_id" value="$(arg usb_port_ft)"/>
+      </node>
+        <!-- Bias the F/T sensor at startup -->
+      <node pkg="rosservice" type="rosservice" name="ft_sensor_biaser"  args="call --wait /robotiq_force_torque_sensor_acc &quot;command: 'SET_ZRO'&quot; " />
+    </group>
+
+    <group if="$(arg with_single_act)">
+      <node pkg="openhand_node" name="reset_motor_node" type="ResetMotorNode.py" output="screen">
+          <rosparam command="load" file="$(find openhand_node)/param/reset_parameters.yaml"/>
+      </node>
+    </group>
+
+  </group>
+
+  <!-- startup simulated world and spawn robot-->
+  <group if="$(arg sim)">
+    <include file="$(find open_manipulator_p_hw)/launch/open_manipulator_p_gazebo.launch">
+      <arg name="with_gripper" value="$(arg with_gripper)"/>
+      <arg name="with_ft" value="true"/>
+      <arg name="position" value="true"/>
+    </include>
+  </group>
+
+  <!-- controller utils -->
+  <include file="$(find open_manipulator_p_hw)/launch/controller_utils.launch"/>
+
+  <!-- joint_trajectory_controller -->
+  <group unless="$(arg sim)">
+    <rosparam file="$(find open_manipulator_p_controllers)/config/joint_trajectory_controller.yaml" command="load"/>
+  </group>
+  <group if="$(arg sim)">
+    <rosparam file="$(find open_manipulator_p_controllers)/config/joint_trajectory_controller_gazebo.yaml" command="load"/>
+  </group>
+  <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn arm_controller"/>
+  <group if="$(arg with_gripper)">
+    <node name="gripper_controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn gripper_controller"/>
+  </group>
+
+    <!-- publish tf -->
+<!--  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />-->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+<!--  <node pkg="tf" type="static_transform_publisher" name="map_odom_broadcaster" args="0.25 0.0 0.0 0 0 0 /world /finger 100" />-->
+
+  <group if="$(arg with_finger)">
+    <node name="tactile_image_publisher" pkg="tactile_finger" type="00_tactile_image_publisher.py" output="screen"  />
+  </group>
+
+    <node name="push_point_tf_publisher" pkg="tactile_finger" type="00_push_point_tf_publisher.py" output="screen"  />
+    <node name="force_torque_filter_publisher" pkg="tactile_finger" type="00_force_torque_filter_publisher.py" output="screen"  />
+    <rosparam command="load" file="$(find tactile_finger)/config/finger.yaml" />
+
+   <group if="$(arg with_ft)">
+        <include file="$(find open_manipulator_p_with_ft_moveit_config)/launch/move_group.launch"/>
+        <include file="$(find open_manipulator_p_with_ft_moveit_config)/launch/moveit_rviz.launch"/>
+   </group>
+
+</launch>
+
+
+  <!-- startup move_group related -->
+<!--  <group unless="$(arg with_gripper)">-->
+<!--    <include file="$(find open_manipulator_p_moveit_config)/launch/move_group.launch"/>-->
+<!--    <include file="$(find open_manipulator_p_moveit_config)/launch/moveit_rviz.launch"/>-->
+<!--  </group>-->
+<!--  <group if="$(arg with_gripper)">-->
+<!--    <include file="$(find open_manipulator_p_with_gripper_moveit_config)/launch/move_group.launch"/>-->
+<!--    <include file="$(find open_manipulator_p_with_gripper_moveit_config)/launch/moveit_rviz.launch"/>-->
+<!--  </group>-->

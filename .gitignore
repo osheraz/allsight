@@ -1,0 +1,14 @@
+*.a
+*.so
+*.o
+*.swp
+*.pyc
+*.pkl
+*.pickle
+*.p
+dataset/
+train/records/
+train/evaluation/
+train/utils/contrib/
+calibration/
+simulation/train_history/

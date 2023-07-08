@@ -1,0 +1,12 @@
+#      Finger properties -->  x,  y, z,  cyl height , cyl radius
+#      finger_props = [0.4 + 0.004, -0.002, 0.15, 0.016, 0.0125]
+finger:
+  x: 0.4012
+  y: -0.000 # 0
+  z: 0.15 # 5
+  h: 0.014
+  r: 0.0125
+  N: 1
+  M: 7
+  NN: 1
+  MM: 5

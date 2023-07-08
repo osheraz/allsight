@@ -1,0 +1,123 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="prefix" default=""/>
+  <arg name="sim" default="true"/>
+  <arg name="usb_port" default="/dev/ttyUSB0" />
+  <arg name="usb_port_ft" default="ttyUSB2" />
+
+  <arg name="with_gripper" default="false"/> <!-- with_gripper argument relates to RH-P12-RN in too many places, so i added different argument for OpenHand-->
+  <arg name="with_openhand" default="false"/>
+  <arg name="with_ft" default="false"/>
+  <arg name="with_camera" default="false"/>
+  <arg name="position" default="false"/>
+  <arg name="effort" default="false"/>
+
+
+  <!-- startup ros_control for real robot -->
+  <group unless="$(arg sim)">
+        <include file="$(find open_manipulator_p_hw)/launch/open_manipulator_p_control.launch">
+          <arg name="usb_port" value="$(arg usb_port)"/>
+          <arg name="with_gripper" value="$(arg with_gripper)"/>
+          <arg name="with_openhand" value="$(arg with_openhand)"/>
+          <arg name="with_ft" value="$(arg with_ft)"/>
+          <arg name="with_camera" value="$(arg with_camera)"/>
+        </include>
+      <!-- Load openhand controllers for real hand -->
+        <group if="$(arg with_openhand)">
+          <include file="$(find hand_control)/launch/run.launch">
+            <arg name="num_fingers" value="3"/>
+          </include>
+        </group>
+        <!-- Load Robotiq FT sensor TODO: check if we need to delay  -->
+        <group if="$(arg with_ft)">
+          <node name="rq_stream_sensor" pkg="robotiq_force_torque_sensor" type="rq_stream_sensor_custom" respawn="false" output="screen"/>
+          <node name="rq_sensor" pkg="robotiq_force_torque_sensor" type="rq_sensor_custom" respawn="false" output="screen">
+                        <param name="serial_id" value="$(arg usb_port_ft)"/>
+          </node>
+        </group>
+  </group>
+
+  <!-- startup simulated world and spawn robot-->
+  <group if="$(arg sim)">
+    <include file="$(find open_manipulator_p_hw)/launch/open_manipulator_p_gazebo.launch">
+      <arg name="with_gripper" value="$(arg with_gripper)"/>
+      <arg name="with_openhand" value="$(arg with_openhand)"/>
+      <arg name="with_ft" value="$(arg with_ft)"/>
+      <arg name="position" value="$(arg position)"/>
+      <arg name="effort" value="$(arg effort)"/>
+    </include>
+  </group>
+
+  <!-- controller utils -->
+  <include file="$(find open_manipulator_p_hw)/launch/controller_utils.launch"/>
+
+  <!-- joint_trajectory_controller - In gazebo they use effort interface for the gripper-->
+  <group unless="$(arg sim)">
+    <rosparam file="$(find open_manipulator_p_controllers)/config/joint_trajectory_controller.yaml" command="load"/>
+  </group>
+
+  <group if="$(arg sim)">
+      <group if="$(arg position)">
+            <rosparam file="$(find open_manipulator_p_controllers)/config/joint_trajectory_controller_gazebo.yaml" command="load" />
+      </group>
+      <group if="$(arg effort)">
+            <rosparam file="$(find open_manipulator_p_controllers)/config/joint_trajectory_controller_gazebo_effort.yaml" command="load" />
+      </group>
+  </group>
+
+  <!-- Load controller configuration for gazebo simulation-->
+  <group if="$(arg sim)">
+      <group if="$(arg with_openhand)">
+              <group if="$(arg position)">
+                  <rosparam file="$(find kortex_control)/grippers/yale_openhand_O/config/gripper_action_controller_parameters.yaml" command="load" subst_value="true" unless="$(eval not arg('with_openhand'))"/>
+                  <rosparam file="$(find kortex_description)/grippers/yale_openhand_O/config/gripper.yaml" command="load" subst_value="true" unless="$(eval not arg('with_openhand'))"/>
+                  <!--   Simulation of tendon-based actuation - Linear method -->
+                  <node pkg="tactile_finger" type="hand_node.py" name="hand_node" output="screen">
+                    <rosparam command="load" file="$(find kortex_description)/grippers/yale_openhand_O/config/gripper.yaml" />
+                  </node>
+              </group>
+              <group if="$(arg effort)">
+                  <rosparam file="$(find kortex_control)/grippers/yale_openhand_O/config/gripper_action_controller_parameters_effort.yaml" command="load" subst_value="true" unless="$(eval not arg('with_openhand'))"/>
+                  <rosparam file="$(find kortex_description)/grippers/yale_openhand_O/config/gripper_effort.yaml" command="load" subst_value="true" unless="$(eval not arg('with_openhand'))"/>
+                  <!--   Simulation of tendon-based actuation - Linear method -->
+<!--                  <node pkg="tactile_finger" type="hand_node.py" name="hand_node" output="screen">-->
+<!--                    <rosparam command="load" file="$(find kortex_description)/grippers/yale_openhand_O/config/gripper_effort.yaml" />-->
+<!--                  </node>-->
+              </group>
+
+          <!--     Openhand gripper controller spawn TODO: add stopped arg-->
+          <group if="$(arg with_openhand)">
+            <node name="$(arg prefix)openhand_gripper_controllers_spawner" pkg="controller_manager" type="spawner" respawn="false"
+              output="screen" args="
+              $(arg prefix)base_to_finger_1_1_position_controller
+              $(arg prefix)finger_1_1_to_finger_1_2_position_controller
+              $(arg prefix)finger_1_2_to_finger_1_3_position_controller
+              $(arg prefix)base_to_finger_2_1_position_controller
+              $(arg prefix)finger_2_1_to_finger_2_2_position_controller
+              $(arg prefix)finger_2_2_to_finger_2_3_position_controller
+              $(arg prefix)base_to_finger_3_2_position_controller
+              $(arg prefix)finger_3_2_to_finger_3_3_position_controller" />
+          </group>
+    </group>
+  </group>
+
+  <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn arm_controller"/>
+
+    <!-- publish tf -->
+<!--  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />-->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  <node  name="joint_state_publisher" pkg="tactile_finger" type="custom_joint_state_publisher.py" output="screen"/>
+
+      <!-- startup move_group related  -->
+  <group unless="$(arg with_gripper)">
+      <group unless="$(arg with_openhand)">
+        <include file="$(find open_manipulator_p_moveit_config)/launch/move_group.launch"/>
+        <include file="$(find open_manipulator_p_moveit_config)/launch/moveit_rviz.launch"/>
+      </group>
+  </group>
+  <group if="$(arg with_openhand)">
+    <include file="$(find open_manipulator_p_with_openhand_and_ft_moveit_config)/launch/move_group.launch"/>
+    <include file="$(find open_manipulator_p_with_openhand_and_ft_moveit_config)/launch/moveit_rviz.launch"/>
+  </group>
+
+</launch>

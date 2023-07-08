@@ -1,0 +1,45 @@
+<launch>
+
+	<arg name="convert_tf" default="false" />
+	<arg name="sensors" default="false" />
+	<arg name="hand" default="true" />
+	<arg name="pub_delay" default="10.0" />
+    <arg name="num_fingers" default="3" />
+
+  <group if="$(arg hand)">
+
+      <group if="$(eval arg('num_fingers') == 2)">
+          <include file="$(find openhand_node)/launch/openhand.launch" />
+          <node pkg="hand_control" name="hand_control" type="gripper.py" output="screen">
+             <rosparam command="load" file="$(find hand_control)/param/control_params.yaml" />
+          </node>
+      </group>
+
+      <group if="$(eval arg('num_fingers') == 3)">
+          <include file="$(find openhand_node)/launch/openhand.launch" />
+          <node pkg="hand_control" name="hand_control" type="gripper_3f_velocity.py" output="screen">
+             <rosparam command="load" file="$(find hand_control)/param/control_params_3f.yaml" />
+          </node>
+      </group>
+
+      <node name="gripper_state_publisher" pkg="gripper_state_publisher" type="gripper_state_publisher_node" output="screen" launch-prefix="bash -c 'sleep $(arg pub_delay); $0 $@' "/>
+
+  </group>
+
+  <group if="$(arg sensors)">
+<!--       EDIT   -->
+  </group>
+
+
+
+  <group if="$(arg convert_tf)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find kortex_description)/grippers/${gripper}/urdf/${gripper}_macro.xacro"/>
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+              <rosparam param="source_list">[base_feedback/joint_state]</rosparam>
+              <param name="use_gui" value="false"/>
+              <param name="rate" value="$(arg cyclic_data_publish_rate)" />
+    </node>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  </group>
+    
+</launch>

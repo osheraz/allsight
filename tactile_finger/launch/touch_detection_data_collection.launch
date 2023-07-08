@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <node name="tactile_image_publisher" pkg="tactile_finger" type="00_tactile_image_publisher.py" output="screen"  />
+
+</launch>
+
