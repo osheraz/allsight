@@ -159,7 +159,7 @@ class Trainer(object):
         #
         # df_data_val = df_data_val[df_data_val.time > 1.0]  # train only over touching samples!
 
-        train_df, remain_df = train_test_split(df_data, test_size=0.15, shuffle=True)
+        train_df, remain_df = train_test_split(df_data, test_size=0.2, shuffle=False)
         valid_df, test_df = train_test_split(remain_df, test_size=0.5, shuffle=True)
 
         # test_df, _ = train_test_split(df_data_val, test_size=0.02, shuffle=True)
@@ -172,7 +172,7 @@ class Trainer(object):
 
         # save_df_as_json(train_df, self.params['logdir'] + '/', 'train_df')
         # save_df_as_json(valid_df, self.params['logdir'] + '/', 'valid_df')
-        save_df_as_json(test_df, self.params['logdir'] + '/', 'test_df')
+        # save_df_as_json(test_df, self.params['logdir'] + '/', 'test_df')
 
         self.train_transform, self.aug_transform, self.test_transform = get_transforms(self.params['image_size'])
 

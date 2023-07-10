@@ -2,11 +2,15 @@ import cv2
 import numpy as np
 
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 from mpl_toolkits.mplot3d.proj3d import proj_transform
 from matplotlib.text import Annotation
+
+from .geometry import convert_quat_xyzw_to_wxyz
+from transformations import quaternion_matrix
+from .surface import create_finger_geometry
+from scipy import spatial
 
 
 # class Arrow3D(FancyArrowPatch):
@@ -19,6 +23,107 @@ from matplotlib.text import Annotation
 #         xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
 #         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
 #         FancyArrowPatch.draw(self, renderer)
+
+class Display:
+    def __init__(self, statistics, output_type):
+
+        self.statistics = statistics
+        self.output_type = output_type
+        self.finger_geometry = create_finger_geometry()
+        self.tree = spatial.KDTree(self.finger_geometry[0])
+
+    def config_display(self, blit):
+
+        plt.close('all')
+
+        self.fig = plt.figure(figsize=(8, 4.4))
+        self.ax1 = self.fig.add_subplot(1, 1, 1, projection='3d')
+
+        self.ax1.autoscale(enable=True, axis='both', tight=True)
+        self.ax1.set_xlim3d(self.statistics['min'][0], self.statistics['max'][0])
+        self.ax1.set_ylim3d(self.statistics['min'][1], self.statistics['max'][1])
+        self.ax1.set_zlim3d(self.statistics['min'][2], self.statistics['max'][2])
+
+        self.ax1.tick_params(color='white')
+        self.ax1.grid(False)
+        self.ax1.set_facecolor('white')
+        # First remove fill
+        self.ax1.xaxis.pane.fill = False
+        self.ax1.yaxis.pane.fill = False
+        self.ax1.zaxis.pane.fill = False
+
+        # Now set color to white (or whatever is "invisible")
+        self.ax1.xaxis.pane.set_edgecolor('w')
+        self.ax1.yaxis.pane.set_edgecolor('w')
+        self.ax1.zaxis.pane.set_edgecolor('w')
+
+        Xc, Yc, Zc = data_for_finger_parametrized(h=0.016, r=0.0128)
+
+        self.ax1.plot_surface(Xc, Yc, Zc, alpha=0.1, color='grey')
+
+        self.ax1.set_yticklabels([])
+        self.ax1.set_xticklabels([])
+        self.ax1.set_zticklabels([])
+
+        self.pred_arrow, = self.ax1.plot3D([], [], [], color='black', linewidth=5, alpha=0.8)
+        self.true_arrow, = self.ax1.plot3D([], [], [], color='red', linewidth=5, alpha=0.8)
+
+        plt.tight_layout()
+
+        self.fig.canvas.draw()
+        if blit:
+            # cache the background
+            self.axbackground = self.fig.canvas.copy_from_bbox(self.ax1.bbox)
+
+        plt.show(block=False)
+
+    def update_display(self, y, target=None, blit=True):
+
+        scale = 1500
+        pred_pose = y[:3]
+        pred_force = y[3:6]
+        depth = round((5e-3 - y[-1]) * 1000, 2)
+        torque = round(y[-2], 4)
+
+        if 'torque' in self.output_type and 'depth' in self.output_type:
+            self.fig.suptitle(f'\nForce: {y[3:6]} (N)'
+                              f'\nPose: {y[:3] * 1000} (mm)'
+                              f'\nTorsion: {torque} (Nm)'
+                              f'\nDepth: {abs(depth)} (mm)',
+                              fontsize=13)
+
+        if target is not None:
+            true_pose = target[:3]
+            true_force = target[3:6]
+            _, ind = self.tree.query(true_pose)
+            cur_rot = self.finger_geometry[1][ind].copy()
+            true_rot = quaternion_matrix(convert_quat_xyzw_to_wxyz(cur_rot))
+            true_force_transformed = np.dot(true_rot[:3, :3], true_force)
+
+            self.true_arrow.set_xdata(np.array([true_pose[0], true_pose[0] + true_force_transformed[0] / scale]))
+            self.true_arrow.set_ydata(np.array([true_pose[1], true_pose[1] + true_force_transformed[1] / scale]))
+            self.true_arrow.set_3d_properties(
+                np.array([true_pose[2], true_pose[2] + true_force_transformed[2] / scale]))
+
+        _, ind = self.tree.query(pred_pose)
+        cur_rot = self.finger_geometry[1][ind].copy()
+        pred_rot = quaternion_matrix(convert_quat_xyzw_to_wxyz(cur_rot))
+        pred_force_transformed = np.dot(pred_rot[:3, :3], pred_force)
+
+        self.pred_arrow.set_xdata(np.array([pred_pose[0], pred_pose[0] + pred_force_transformed[0] / scale]))
+        self.pred_arrow.set_ydata(np.array([pred_pose[1], pred_pose[1] + pred_force_transformed[1] / scale]))
+        self.pred_arrow.set_3d_properties(np.array([pred_pose[2], pred_pose[2] + pred_force_transformed[2] / scale]))
+
+        if blit:
+            self.fig.canvas.restore_region(self.axbackground)
+            self.ax1.draw_artist(self.pred_arrow)
+            self.ax1.draw_artist(self.true_arrow)
+            self.fig.canvas.blit(self.ax1.bbox)
+        else:
+            self.fig.canvas.draw()
+
+        self.fig.canvas.flush_events()
+
 
 class Arrow3D(FancyArrowPatch):
     def __init__(self, xs, ys, zs, *args, **kwargs):

@@ -2,8 +2,10 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 from scipy import spatial
-from src.allsight.train.utils.geometry import concatenate_matrices, rotation_matrix
-from src.allsight.train.utils.vis_utils import data_for_cylinder_along_z, data_for_sphere_along_z, set_axes_equal
+from .geometry import concatenate_matrices, rotation_matrix
+# from .vis_utils import data_for_cylinder_along_z, data_for_sphere_along_z, set_axes_equal
+
+# src.allsight.train.utils
 
 origin, xaxis, yaxis, zaxis = (0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)
 finger_props = [0, 0, 0, 0.016, 0.012]
@@ -101,7 +103,7 @@ def create_finger_geometry(Nc=50, Mc=10, Mr=10, display=False): #
             surface_xyz.append(B)
             surface_rot.append(rot)
 
-    print('Surface is built from {} points'.format(len(surface_xyz)))
+    # print('Surface is built from {} points'.format(len(surface_xyz)))
     # display
     # if False:
     #     from matplotlib import pyplot as plt
@@ -120,25 +122,25 @@ def create_finger_geometry(Nc=50, Mc=10, Mr=10, display=False): #
         from pytransform3d.transform_manager import TransformManager
         tm = TransformManager()
 
-        amnt = 1
-        for i in range(0, len(surface_xyz), amnt):
-            object2cam = pt.transform_from_pq(np.hstack((surface_xyz[i],
-                                                         pr.quaternion_wxyz_from_xyzw(
-                                                             surface_rot[i]))))
-
-            tm.add_transform("object" + str(i), "camera", object2cam)
-
-        ax = tm.plot_frames_in("camera", s=0.0015, show_name=False)
-
-        Xc, Yc, Zc = data_for_cylinder_along_z(0., 0., 0.012, 0.016)
-        ax.plot_surface(Xc, Yc, Zc, alpha=0.1, color='grey')
-        Xc, Yc, Zc = data_for_sphere_along_z(0., 0., 0.012, 0.016)
-        ax.plot_surface(Xc, Yc, Zc, alpha=0.1, color='grey')
-        ax.set_xlim((-0.014, 0.014))
-        ax.set_ylim((-0.014, 0.014))
-        ax.set_zlim((0.0, 0.03))
-        set_axes_equal(ax)
-        plt.show()
+        # amnt = 1
+        # for i in range(0, len(surface_xyz), amnt):
+        #     object2cam = pt.transform_from_pq(np.hstack((surface_xyz[i],
+        #                                                  pr.quaternion_wxyz_from_xyzw(
+        #                                                      surface_rot[i]))))
+        #
+        #     tm.add_transform("object" + str(i), "camera", object2cam)
+        #
+        # ax = tm.plot_frames_in("camera", s=0.0015, show_name=False)
+        #
+        # Xc, Yc, Zc = data_for_cylinder_along_z(0., 0., 0.012, 0.016)
+        # ax.plot_surface(Xc, Yc, Zc, alpha=0.1, color='grey')
+        # Xc, Yc, Zc = data_for_sphere_along_z(0., 0., 0.012, 0.016)
+        # ax.plot_surface(Xc, Yc, Zc, alpha=0.1, color='grey')
+        # ax.set_xlim((-0.014, 0.014))
+        # ax.set_ylim((-0.014, 0.014))
+        # ax.set_zlim((0.0, 0.03))
+        # set_axes_equal(ax)
+        # plt.show()
 
     return surface_xyz, surface_rot
 

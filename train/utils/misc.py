@@ -12,6 +12,14 @@ def save_df_as_json(df_data, save_path, file_name):
         json.dump(to_dict, json_file, indent=3)
 
 
+def find_strings_with_substring(string_list, substring):
+    result = []
+    for string in string_list:
+        if substring in string and 'finetune' not in string:
+            result.append(string)
+    return result
+
+
 class ColorPrint:
 
     @staticmethod

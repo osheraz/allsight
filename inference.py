@@ -4,17 +4,13 @@ import os
 import cv2
 import numpy as np
 import json
-from scipy import spatial
 from src.allsight.train.utils.misc import unnormalize, unnormalize_max_min
 from src.allsight.train.utils.models import PreTrainedModel, get_model
 from src.allsight.train.utils.datasets import output_map
-from src.allsight.train.utils.vis_utils import data_for_finger_parametrized
-from src.allsight.train.utils.surface import create_finger_geometry
 from src.allsight.train.utils.transforms import get_transforms
-from src.allsight.train.utils.geometry import convert_quat_xyzw_to_wxyz
 from src.allsight.tactile_finger.src.envs.finger import Finger
+from train.utils.vis_utils import Display
 
-from transformations import quaternion_matrix
 matplotlib.use('TkAgg')  # Use the 'TkAgg' backend
 import matplotlib.pyplot as plt
 plt.ion()
@@ -47,85 +43,7 @@ class TactileInferenceFinger(Finger):
         self.statistics = statistics
         self.output_type = model_params['output']
         self.norm_method = model_params['norm_method']
-        self.finger_geometry = create_finger_geometry()
-        self.tree = spatial.KDTree(self.finger_geometry[0])
-
-    def config_display(self, blit):
-
-        plt.close('all')
-
-        self.fig = plt.figure(figsize=(8, 4.4))
-
-        self.ax1 = self.fig.add_subplot(1, 1, 1, projection='3d')
-
-        self.ax1.autoscale(enable=True, axis='both', tight=True)
-        self.ax1.set_xlim3d(self.statistics['min'][0], self.statistics['max'][0])
-        self.ax1.set_ylim3d(self.statistics['min'][1], self.statistics['max'][1])
-        self.ax1.set_zlim3d(self.statistics['min'][2], self.statistics['max'][2])
-
-        self.ax1.tick_params(color='white')
-        self.ax1.grid(False)
-        mpl.rcParams['grid.color'] = 'white'
-        self.ax1.set_facecolor('white')
-        self.ax1.xaxis.pane.fill = False
-        self.ax1.yaxis.pane.fill = False
-        self.ax1.zaxis.pane.fill = False
-
-        self.ax1.xaxis.pane.set_edgecolor('w')
-        self.ax1.yaxis.pane.set_edgecolor('w')
-        self.ax1.zaxis.pane.set_edgecolor('w')
-
-        Xc, Yc, Zc = data_for_finger_parametrized(h=0.016, r=0.0125)
-
-        self.ax1.plot_surface(Xc, Yc, Zc, alpha=0.1, color='grey')
-
-        self.ax1.set_yticklabels([])
-        self.ax1.set_xticklabels([])
-        self.ax1.set_zticklabels([])
-
-        self.arrow, = self.ax1.plot3D([], [], [], color='black', linewidth=5, alpha=0.8)
-
-        plt.tight_layout()
-        self.fig.canvas.draw()
-
-        if blit:
-            # cache the background
-            self.axbackground = self.fig.canvas.copy_from_bbox(self.ax1.bbox)
-
-        plt.show(block=False)
-
-    def update_display(self, y, target=None, blit=True):
-
-        scale = 1500
-
-        if 'torque' in self.output_type and 'depth' in self.output_type:
-            depth = round((5e-3 - y[-1]) * 1000, 2)
-            torque = round(y[-2], 4)
-            self.fig.suptitle(f'\nForce: {y[3:6]} (N)'
-                              f'\nPose: {y[:3] * 1000} (mm)'
-                              f'\nTorsion: {torque} (Nm)'
-                              f'\nDepth: {abs(depth)} (mm)',
-                              fontsize=13)
-
-        pred_pose = y[:3]
-        pred_force = y[3:6]
-        _, ind = self.tree.query(pred_pose)
-        cur_rot = self.finger_geometry[1][ind].copy()
-        pred_rot = quaternion_matrix(convert_quat_xyzw_to_wxyz(cur_rot))
-        pred_force_transformed = np.dot(pred_rot[:3, :3], pred_force)
-
-        self.arrow.set_xdata(np.array([pred_pose[0], pred_pose[0] + pred_force_transformed[0] / scale]))
-        self.arrow.set_ydata(np.array([pred_pose[1], pred_pose[1] + pred_force_transformed[1] / scale]))
-        self.arrow.set_3d_properties(np.array([pred_pose[2], pred_pose[2] + pred_force_transformed[2] / scale]))
-
-        if blit:
-            self.fig.canvas.restore_region(self.axbackground)
-            self.ax1.draw_artist(self.arrow)
-            self.fig.canvas.blit(self.ax1.bbox)
-        else:
-            self.fig.canvas.draw()
-
-        self.fig.canvas.flush_events()
+        self.display = Display(statistics=statistics, output_type=model_params['output'])
 
     def inference(self, ref_frame=None, display_pixel=True):
         """
@@ -133,7 +51,7 @@ class TactileInferenceFinger(Finger):
         """
         blit = True
         is_touching = True
-        self.config_display(blit=blit)
+        self.display.config_display(blit=blit)
 
         ref_frame = cv2.cvtColor(ref_frame, cv2.COLOR_BGR2RGB)
         to_model_ref = torch.unsqueeze(self.transform(ref_frame).to(device), 0)
@@ -167,7 +85,7 @@ class TactileInferenceFinger(Finger):
                                     (255, 0, 0), 2,
                                     cv2.LINE_AA)
 
-            self.update_display(y)
+            self.display.update_display(y)
 
             cv2.imshow("Inference", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
