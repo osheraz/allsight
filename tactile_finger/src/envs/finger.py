@@ -1,8 +1,8 @@
 import numpy as np
 import cv2
-from src.allsight.tactile_finger.src.envs.env_utils.img_utils import ContactArea, circle_mask, align_center, \
-    center_mask, _diff, ring_mask
-from src.allsight.tactile_finger.src.envs.env_utils.img_utils import _structure, square_cut
+from src.allsight.tactile_finger.src.envs.env_utils.img_utils import ContactArea, circle_mask, align_center
+from src.allsight.tactile_finger.src.envs.env_utils.img_utils import center_mask, _diff, ring_mask
+from src.allsight.tactile_finger.src.envs.env_utils.img_utils import _mask, square_cut
 
 
 class Finger:
@@ -70,7 +70,6 @@ class Finger:
 
         return frame
 
-
     def find_contact(self, raw_image, ref_frame):
 
         C = self.contact(raw_image, ref_frame)
@@ -109,11 +108,11 @@ class Finger:
 
             cv2.imshow("Finger View {}".format(self.serial), raw_image)
 
-            # Mask
-            # marker_img = _structure(raw_image)
+            # # Mask
+            # marker_img = _mask(raw_image)
             # cv2.imshow('markers', marker_img)
-
-            # diff
+            #
+            # # diff
             # diff = _diff(raw_image, ref_frame)
             # cv2.imshow('diff', diff)
 
@@ -150,7 +149,7 @@ if __name__ == "__main__":
 
     pc_name = os.getlogin()
 
-    device_id = 0 if pc_name == 'roblab20' else 4
+    device_id = 0 if pc_name == 'roblab20' else 6
 
     tactile = Finger(dev_name=device_id, serial='/dev/video')
 

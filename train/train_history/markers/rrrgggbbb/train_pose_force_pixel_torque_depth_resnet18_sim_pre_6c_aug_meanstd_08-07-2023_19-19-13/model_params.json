@@ -8,7 +8,7 @@
    "optimizer": "Adam",
    "dropout": 0.0,
    "portion": 1.0,
-   "logdir": "/home/roblab20/catkin_ws/src/allsight/experiments/train_history/markers/rrrgggbbb/train_pose_force_pixel_torque_depth_resnet18_sim_pre_6c_aug_meanstd_08-07-2023_19-19-13",
+   "logdir": "/home/roblab20/catkin_ws/src/allsight/train/train_history/markers/rrrgggbbb/train_pose_force_pixel_torque_depth_resnet18_sim_pre_6c_aug_meanstd_08-07-2023_19-19-13",
    "scheduler": "none",
    "model_name": "resnet18",
    "buffer_paths": [

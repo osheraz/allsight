@@ -112,7 +112,7 @@ def resizeAndPad(img, size, padColor=255):
 
     return scaled_img
 
-def _structure(target, size=None):
+def _mask(target, size=None):
     gray_target = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
     gray_circle = cv2.adaptiveThreshold(
         gray_target, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, -30)

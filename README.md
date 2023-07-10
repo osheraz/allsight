@@ -39,12 +39,12 @@ potentially designed for robotic in-hand manipulation tasks.
 git clone https://github.com/osheraz/allsight
 cd allsight
 ```
-### 2. Download AllSight-dataset
+### 2. Download AllSight-dataset (Optional)
 ```bash
 git clone https://github.com/osheraz/allsight_dataset
 cd ..
 ```
-### 3. Download TACTO sim package
+### 3. Download TACTO sim package (Optional)
 ```bash
 cd simulation
 git clone https://github.com/osheraz/allsight_sim
@@ -71,8 +71,10 @@ pip install -r requirements.txt
 ```
 
 ## Usage
-The default connection method to the AllSight tactile sensor is through usb,
+The default connection method to the AllSight tactile sensor is through usb.
+
 please follow the camera streaming instructions in [allsight_design](https://docs.google.com/document/d/1w17rNp5aecgzT3BPEN_t8wV7Ci-CQgCzxq583NlFb_A/edit).
+
 - [tactile_finger/src/envs/finger.py](tactile_finger/src/envs/finger.py): AllSight interface.
 - [inference.py](inference.py): live inference script.
 - [offline_inference.py](offline_inference.py): offline inference via dataset.
