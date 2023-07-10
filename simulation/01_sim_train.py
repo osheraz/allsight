@@ -41,7 +41,7 @@ class Trainer(object):
         self.params = params
 
         leds = params['leds']
-        indenter = ['sphere3', 'sphere4', 'sphere5', 'cube']
+        indenter = ['sphere3', 'sphere4', 'sphere5', 'cube', 'rect', 'ellipse']
 
         buffer_paths_to_train = get_buffer_paths_sim(leds, indenter)
 
