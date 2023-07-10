@@ -1,36 +1,37 @@
 import torch
-import matplotlib
-
-matplotlib.use('TkAgg')  # Use the 'TkAgg' backend
 import matplotlib.pyplot as plt
-
-plt.ion()
 import matplotlib as mpl
+import pandas as pd
+import cv2
+import numpy as np
+import json
+import os
+import random
 
+from train.utils.misc import unnormalize, unnormalize_max_min, find_strings_with_substring
+from train.utils.models import get_model
+from train.utils.transforms import get_transforms
+from train.utils.datasets import output_map, get_inputs_and_targets
+from train.utils.vis_utils import Display
+
+np.set_printoptions(precision=3)
+pc_name = os.getlogin()
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 mpl.rcParams['font.family'] = 'DejaVu Serif'
 plt.rcParams['font.size'] = 8
 plt.rcParams['axes.linewidth'] = 0
 
-import pandas as pd
-import cv2
-import numpy as np
-from train.utils.misc import unnormalize, unnormalize_max_min, find_strings_with_substring
-import json
-from train.utils.models import get_model
-from train.utils.transforms import get_transforms
-import os
-import random
-from train.utils.datasets import output_map, get_inputs_and_targets
-from train.utils.vis_utils import Display
-
-np.set_printoptions(precision=3)  # to widen the printed array
-pc_name = os.getlogin()
-
 
 class TactileOfflineInferenceFinger:
-
     def __init__(self, model=None, model_params=None, transform=None, statistics=None):
-
+        """
+        Initialize the TactileOfflineInferenceFinger object.
+        :param model: The trained model for inference.
+        :param model_params: The parameters of the trained model.
+        :param transform: The data transformation function.
+        :param statistics: The statistics used for normalization.
+        """
         self.model = model
         self.transform = transform
         self.statistics = statistics
@@ -40,38 +41,38 @@ class TactileOfflineInferenceFinger:
         self.display = Display(statistics=statistics, output_type=model_params['output'])
 
     def prepare_data(self, paths):
-
+        """
+        Prepare the data for offline inference.
+        :param paths: The paths to the data files.
+        :return: The prepared episodes and targets.
+        """
         paths = [p.replace('roblab20', 'osher') for p in paths]
         episodes, targets = [], []
 
-        for idx, p in enumerate(paths):
-
+        for idx, p in enumerate(paths[:2]):
             df_data = pd.read_json(p).transpose()
-
-            # Group the dataset by angle
             grouped = df_data.groupby(['theta', 'num'])
 
-            # Convert dataset to episodic format
             for angle, group in grouped:
-                episode_frames, target_frames = get_inputs_and_targets(group, self.output_type)
+                episode_frames, _, target_frames = get_inputs_and_targets(group, self.output_type)
                 episodes.append(episode_frames)
                 targets.append(target_frames)
 
         return episodes, targets
 
     def offline_inference(self, samples=0):
-
+        """
+        Perform offline inference.
+        :param samples: The number of samples to process.
+        """
         blit = True
         is_touching = True
 
-        episodes, targets = self.prepare_data(model_params['buffer_paths'])
-
+        episodes, targets = self.prepare_data(self.model_params['buffer_paths'])
         self.display.config_display(blit=blit)
 
         for s in range(samples):
-
             idx = random.randint(0, len(episodes))
-
             episode = episodes[idx]
             target = targets[idx]
 
@@ -79,14 +80,11 @@ class TactileOfflineInferenceFinger:
             to_model_ref = torch.unsqueeze(self.transform(ref_frame).to(device), 0)
 
             for i in range(len(episode)):
-
                 raw_image = cv2.imread(episode[i])
-
                 raw_image = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
 
                 with torch.no_grad():
                     to_model = torch.unsqueeze(self.transform(raw_image).to(device), 0)
-
                     if np.round(is_touching):
                         y = self.model(to_model, to_model_ref).cpu().detach().numpy()
                         if self.norm_method == 'meanstd':
@@ -101,9 +99,7 @@ class TactileOfflineInferenceFinger:
                     px, py, pr = int(y[IDX]), int(y[IDX + 1]), max(0, int(y[IDX + 2]))
                     raw_image = cv2.circle(raw_image, (px, py), pr, (0, 0, 0), 1)
                     raw_image = cv2.putText(raw_image, f'Contact: {[px, py, pr]}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                                            0.8,
-                                            (255, 0, 0), 2,
-                                            cv2.LINE_AA)
+                                            0.8, (255, 0, 0), 2, cv2.LINE_AA)
 
                 self.display.update_display(y, target[i], blit=True)
 
@@ -117,12 +113,8 @@ class TactileOfflineInferenceFinger:
 
 
 if __name__ == "__main__":
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # cuda or cpu
-
     list_dirs = []
     path_to_dir = f'{os.path.dirname(__file__)}/train/train_history/'
-
     for path_to_dir, dirs, files in os.walk(path_to_dir):
         for subdir in dirs:
             list_dirs.append(os.path.join(path_to_dir, subdir))
@@ -139,14 +131,12 @@ if __name__ == "__main__":
 
     model = get_model(model_params)
 
-    print('loaded {} with output: {}'.format(model_params['input_type'], model_params['output']))
+    print('Loaded {} with output: {}'.format(model_params['input_type'], model_params['output']))
     path_to_model = path_to_dir + 'model.pth'
     model.load_state_dict(torch.load(path_to_model))
     model.eval()
 
     _, _, test_transform = get_transforms(int(model_params['image_size']))
-
-    device_id = 1 if pc_name == 'roblab20' else 4
 
     tactile = TactileOfflineInferenceFinger(model=model,
                                             model_params=model_params,

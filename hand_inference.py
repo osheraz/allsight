@@ -21,6 +21,16 @@ plt.rcParams['axes.linewidth'] = 0
 
 class Hand:
     def __init__(self, dev_names, model, model_params, test_transform, statistics):
+        """
+        Initializes the Hand object.
+
+        Parameters:
+        - dev_names (list): List of device names corresponding to the fingers.
+        - model (torch.nn.Module): Pre-trained model for inference.
+        - model_params (dict): Parameters of the pre-trained model.
+        - test_transform (torchvision.transforms): Image transformation for testing.
+        - statistics (dict): Statistics for normalizing the predicted outputs.
+        """
         self.transform = test_transform
         self.model = model
         self.model_params = model_params
@@ -34,6 +44,12 @@ class Hand:
             self.fingers.append(finger)
 
     def get_frames(self):
+        """
+        Retrieves frames captured by the fingers.
+
+        Returns:
+        - frames (tuple): Tuple of captured frames.
+        """
         frames = []
         for finger in self.fingers:
             frame = finger.get_frame()
@@ -41,6 +57,9 @@ class Hand:
         return tuple(frames)
 
     def show_fingers_view(self):
+        """
+        Displays the concatenated frames of all fingers as a single image.
+        """
         while True:
             frames = self.get_frames()
             cv2.imshow("Hand View", np.concatenate(frames, axis=1))
@@ -49,6 +68,9 @@ class Hand:
         cv2.destroyAllWindows()
 
     def hand_inference(self):
+        """
+        Performs inference on the captured frames using the pre-trained model.
+        """
         left_ref, right_ref, bottom_ref = self.get_frames()
 
         while True:
@@ -87,6 +109,7 @@ class Hand:
 
 
 if __name__ == "__main__":
+
     pc_name = os.getlogin()
     leds = 'rrrgggbbb'
     gel = 'markers'

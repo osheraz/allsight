@@ -34,15 +34,14 @@ output_map = {'pixel': 3,  # px, py, r
 
 sensor_dict = {'markers': {'rrrgggbbb': [2, 1, 0, 11],
                            'rgbrgbrgb': [7, 8],
-                           'white':     [5, 6]},
-               'clear':   {'rrrgggbbb': [3, 10],
-                           'rgbrgbrgb': [9],
-                           'white':     [4]}
+                           'white': [5, 6]},
+               'clear': {'rrrgggbbb': [3, 10],
+                         'rgbrgbrgb': [9],
+                         'white': [4]}
                }
 
 
 def get_buffer_paths(leds, gel, indenter, sensor_id=None):
-
     trained_sensor_id = []
     test_sensor_id = []
 
@@ -86,7 +85,6 @@ def get_buffer_paths(leds, gel, indenter, sensor_id=None):
 
 
 def get_buffer_paths_sim(leds, indenter):
-
     if leds == 'combined':
         leds_list = ['rrrgggbbb', 'rgbrgbrgb', 'white']
     else:
@@ -103,51 +101,56 @@ def get_buffer_paths_sim(leds, indenter):
 
 
 def get_inputs_and_targets(group, output_type):
+    inputs = [group.iloc[idx].frame for idx in range(group.shape[0])]
+    inputs_ref = [group.iloc[idx].ref_frame for idx in range(group.shape[0])]
 
+    if output_type == 'pixel':
+        target = np.array(group.iloc[idx].contact_px for idx in range(group.shape[0]))
+    elif output_type == 'force':
+        target = np.array([group.iloc[idx].ft_ee_transformed[:3] for idx in range(group.shape[0])])
+    elif output_type == 'force_torque':
+        target = np.array(
+            [group.iloc[idx].ft_ee_transformed[0, 1, 2, 5] for idx in range(group.shape[0])])
+    elif output_type == 'pose':
+        target = np.array([group.iloc[idx].pose_transformed[0][:3] for idx in range(group.shape[0])])
+    elif output_type == 'pose_force':
+        target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
+                                      group.iloc[idx].ft_ee_transformed[:3])) for idx in
+                           range(group.shape[0])])
+    elif output_type == 'depth':
+        target = np.array([group.iloc[idx].depth for idx in range(group.shape[0])])
+    elif output_type == 'pose_force_torque':
+        target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
+                                      group.iloc[idx].ft_ee_transformed[:3],
+                                      group.iloc[idx].ft_ee_transformed[5])) for idx in range(group.shape[0])])
+    elif output_type == 'pose_force_pixel':
+        target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
+                                      group.iloc[idx].ft_ee_transformed[:3],
+                                      group.iloc[idx].contact_px)) for idx in range(group.shape[0])])
+    elif output_type == 'pose_force_pixel_depth':
+        target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
+                                      group.iloc[idx].ft_ee_transformed[:3],
+                                      group.iloc[idx].contact_px,
+                                      group.iloc[idx].depth)) for idx in range(group.shape[0])])
+    elif output_type == 'pose_force_pixel_torque':
+        target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
+                                      group.iloc[idx].ft_ee_transformed[:3],
+                                      group.iloc[idx].contact_px,
+                                      group.iloc[idx].ft_ee_transformed[5])) for idx in
+                           range(group.shape[0])])
+    elif output_type == 'pose_force_pixel_torque_depth':
+        target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
+                                      group.iloc[idx].ft_ee_transformed[:3],
+                                      group.iloc[idx].contact_px,
+                                      group.iloc[idx].ft_ee_transformed[5],
+                                      group.iloc[idx].depth)) for idx in range(group.shape[0])])
+
+    else:
         target = None
-        inputs = [group.iloc[idx].frame for idx in range(group.shape[0])]
-        if output_type == 'pixel':
-            target = np.array(group.iloc[idx].contact_px for idx in range(group.shape[0]))
-        elif output_type == 'force':
-            target = np.array([group.iloc[idx].ft_ee_transformed[:3] for idx in range(group.shape[0])])
-        elif output_type == 'force_torque':
-            target = np.array(
-                [group.iloc[idx].ft_ee_transformed[0, 1, 2, 5] for idx in range(group.shape[0])])
-        elif output_type == 'pose':
-            target = np.array([group.iloc[idx].pose_transformed[0][:3] for idx in range(group.shape[0])])
-        elif output_type == 'pose_force':
-            target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
-                                          group.iloc[idx].ft_ee_transformed[:3])) for idx in
-                               range(group.shape[0])])
-        elif output_type == 'depth':
-            target = np.array([group.iloc[idx].depth for idx in range(group.shape[0])])
-        elif output_type == 'pose_force_torque':
-            target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
-                                          group.iloc[idx].ft_ee_transformed[:3],
-                                          group.iloc[idx].ft_ee_transformed[5])) for idx in range(group.shape[0])])
-        elif output_type == 'pose_force_pixel':
-            target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
-                                          group.iloc[idx].ft_ee_transformed[:3],
-                                          group.iloc[idx].contact_px)) for idx in range(group.shape[0])])
-        elif output_type == 'pose_force_pixel_depth':
-            target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
-                                          group.iloc[idx].ft_ee_transformed[:3],
-                                          group.iloc[idx].contact_px,
-                                          group.iloc[idx].depth)) for idx in range(group.shape[0])])
-        elif output_type == 'pose_force_pixel_torque':
-            target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
-                                          group.iloc[idx].ft_ee_transformed[:3],
-                                          group.iloc[idx].contact_px,
-                                          group.iloc[idx].ft_ee_transformed[5])) for idx in
-                               range(group.shape[0])])
-        elif output_type == 'pose_force_pixel_torque_depth':
-            target = np.array([np.hstack((group.iloc[idx].pose_transformed[0][:3],
-                                          group.iloc[idx].ft_ee_transformed[:3],
-                                          group.iloc[idx].contact_px,
-                                          group.iloc[idx].ft_ee_transformed[5],
-                                          group.iloc[idx].depth)) for idx in range(group.shape[0])])
+        print('please enter a valid output type')
 
-        return inputs, target
+    return inputs, inputs_ref, target
+
 
 class TactileDataset(torch.utils.data.Dataset):
     def __init__(self, params, df, output_type='pose_force_pixel',
@@ -162,8 +165,8 @@ class TactileDataset(torch.utils.data.Dataset):
         self.remove_ref = remove_ref
         self.w, self.h = 480, 480
 
-        self.X = [df.iloc[idx].frame for idx in range(self.df.shape[0])]
-        self.X_ref = [df.iloc[idx].ref_frame for idx in range(self.df.shape[0])]
+        # define the labels:
+        self.X, self.X_ref, self.Y = get_inputs_and_targets(df, self.output_type)
 
         if self.apply_mask:
             self.mask = circle_mask((self.w, self.h))
@@ -173,45 +176,6 @@ class TactileDataset(torch.utils.data.Dataset):
             self.X_ref = [f.replace('osher', 'roblab20') for f in self.X_ref]
 
         self.Y_ref = [[0] if df.iloc[idx].ref_frame == df.iloc[idx].frame else [1] for idx in range(self.df.shape[0])]
-
-        # define the labels
-        if self.output_type == 'pixel':
-            self.Y = np.array([df.iloc[idx].contact_px for idx in range(self.df.shape[0])])
-        elif self.output_type == 'force':
-            self.Y = np.array([df.iloc[idx].ft_ee_transformed[:3] for idx in range(self.df.shape[0])])
-        elif self.output_type == 'force_torque':
-            self.Y = np.array([df.iloc[idx].ft_ee_transformed[0, 1, 2, 5] for idx in range(self.df.shape[0])])
-        elif self.output_type == 'pose':
-            self.Y = np.array([df.iloc[idx].pose_transformed[0][:3] for idx in range(self.df.shape[0])])
-        elif self.output_type == 'pose_force':
-            self.Y = np.array([np.hstack((df.iloc[idx].pose_transformed[0][:3],
-                                          df.iloc[idx].ft_ee_transformed[:3])) for idx in range(self.df.shape[0])])
-        elif self.output_type == 'depth':
-            self.Y = np.array([df.iloc[idx].depth for idx in range(self.df.shape[0])])
-        elif self.output_type == 'pose_force_torque':
-            self.Y = np.array([np.hstack((df.iloc[idx].pose_transformed[0][:3],
-                                          df.iloc[idx].ft_ee_transformed[:3],
-                                          df.iloc[idx].ft_ee_transformed[5])) for idx in range(self.df.shape[0])])
-        elif self.output_type == 'pose_force_pixel':
-            self.Y = np.array([np.hstack((df.iloc[idx].pose_transformed[0][:3],
-                                          df.iloc[idx].ft_ee_transformed[:3],
-                                          df.iloc[idx].contact_px)) for idx in range(self.df.shape[0])])
-        elif self.output_type == 'pose_force_pixel_depth':
-            self.Y = np.array([np.hstack((df.iloc[idx].pose_transformed[0][:3],
-                                          df.iloc[idx].ft_ee_transformed[:3],
-                                          df.iloc[idx].contact_px,
-                                          df.iloc[idx].depth)) for idx in range(self.df.shape[0])])
-        elif self.output_type == 'pose_force_pixel_torque':
-            self.Y = np.array([np.hstack((df.iloc[idx].pose_transformed[0][:3],
-                                          df.iloc[idx].ft_ee_transformed[:3],
-                                          df.iloc[idx].contact_px,
-                                          df.iloc[idx].ft_ee_transformed[5])) for idx in range(self.df.shape[0])])
-        elif self.output_type == 'pose_force_pixel_torque_depth':
-            self.Y = np.array([np.hstack((df.iloc[idx].pose_transformed[0][:3],
-                                          df.iloc[idx].ft_ee_transformed[:3],
-                                          df.iloc[idx].contact_px,
-                                          df.iloc[idx].ft_ee_transformed[5],
-                                          df.iloc[idx].depth)) for idx in range(self.df.shape[0])])
 
         if statistics is None:
             self.y_mean = self.Y.mean(axis=0)
@@ -233,9 +197,6 @@ class TactileDataset(torch.utils.data.Dataset):
 
         img = cv2.imread(self.X[idx])
         ref_img = cv2.imread(self.X_ref[idx])
-
-        # img = self.X[idx]
-        # ref_img = self.X_ref[idx]
 
         masked_img = _structure(img, size=(224, 224))
         masked_ref = _structure(ref_img, size=(224, 224))
@@ -288,7 +249,6 @@ class TactileSimDataset(torch.utils.data.Dataset):
         self.remove_ref = remove_ref
         self.w, self.h = 480, 480
         self.dir_path = '/home/roblab20/allsight_sim/experiments/'
-
 
         self.X = [df.iloc[idx].frame for idx in range(self.df.shape[0])]
         self.X_ref = ['/'.join(df.iloc[0].frame.split('/')[:-1]) + '/ref_frame.jpg' for idx in range(self.df.shape[0])]
@@ -368,7 +328,6 @@ class TactileTouchDataset(torch.utils.data.Dataset):
         self.apply_mask = apply_mask
         self.remove_ref = remove_ref
         self.w, self.h = cv2.imread(df.frame[0])[:2]
-
 
         img_name = params['buffer_name'][0].replace('data', 'img')
         data_path = f'/home/{pc_name}/catkin_ws/src/allsight/dataset/'

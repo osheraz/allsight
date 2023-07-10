@@ -1,42 +1,44 @@
 import torch
-import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 import os
 import cv2
 import numpy as np
 import json
-from src.allsight.train.utils.misc import unnormalize, unnormalize_max_min
-from src.allsight.train.utils.models import PreTrainedModel, get_model
-from src.allsight.train.utils.datasets import output_map
-from src.allsight.train.utils.transforms import get_transforms
-from src.allsight.tactile_finger.src.envs.finger import Finger
-from train.utils.vis_utils import Display
 
-matplotlib.use('TkAgg')  # Use the 'TkAgg' backend
-import matplotlib.pyplot as plt
-plt.ion()
-import matplotlib as mpl
+from train.utils.misc import unnormalize, unnormalize_max_min
+from train.utils.models import PreTrainedModel, get_model
+from train.utils.datasets import output_map
+from train.utils.transforms import get_transforms
+from train.utils.vis_utils import Display
+from tactile_finger.src.envs.finger import Finger
+
+np.set_printoptions(precision=3)
+pc_name = os.getlogin()
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 mpl.rcParams['font.family'] = 'DejaVu Serif'
 plt.rcParams['font.size'] = 8
 plt.rcParams['axes.linewidth'] = 0
 
 
-np.set_printoptions(precision=3)  # to widen the printed array
-pc_name = os.getlogin()
-
-
 class TactileInferenceFinger(Finger):
+    """
+    Class for performing tactile inference using a trained model.
 
-    def __init__(self,
-                 serial=None,
-                 dev_name=None,
-                 model=None,
-                 model_params=None,
-                 classifier=None,
-                 transform=None,
-                 statistics=None):
+    Args:
+        serial (str): Serial port for communication.
+        dev_name (int): Device name.
+        model (nn.Module): Trained model for tactile inference.
+        model_params (dict): Parameters of the trained model.
+        classifier (nn.Module, optional): Touch classifier model. Defaults to None.
+        transform (nn.Module, optional): Image transformation module. Defaults to None.
+        statistics (dict, optional): Data statistics for normalization. Defaults to None.
+    """
 
+    def __init__(self, serial=None, dev_name=None, model=None, model_params=None,
+                 classifier=None, transform=None, statistics=None):
         super().__init__(serial, dev_name)
-
         self.model = model
         self.touch_classifier = classifier
         self.transform = transform
@@ -47,8 +49,13 @@ class TactileInferenceFinger(Finger):
 
     def inference(self, ref_frame=None, display_pixel=True):
         """
-        :return: None
+        Perform tactile inference using the trained model.
+
+        Args:
+            ref_frame (numpy.ndarray): Reference frame for comparison.
+            display_pixel (bool): Whether to display the pixel information. Defaults to True.
         """
+
         blit = True
         is_touching = True
         self.display.config_display(blit=blit)
@@ -57,12 +64,10 @@ class TactileInferenceFinger(Finger):
         to_model_ref = torch.unsqueeze(self.transform(ref_frame).to(device), 0)
 
         while True:
-
             raw_image = self.get_frame()
             frame = cv2.cvtColor(raw_image, cv2.COLOR_BGR2RGB)
 
             with torch.no_grad():
-
                 to_model = torch.unsqueeze(self.transform(frame).to(device), 0)
 
                 if self.touch_classifier is not None:
@@ -82,8 +87,7 @@ class TactileInferenceFinger(Finger):
                 px, py, pr = int(y[IDX]), int(y[IDX + 1]), max(0, int(y[IDX + 2]))
                 frame = cv2.circle(frame, (px, py), pr, (0, 0, 0), 2)
                 frame = cv2.putText(frame, f'Contact: {[px, py, pr]}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
-                                    (255, 0, 0), 2,
-                                    cv2.LINE_AA)
+                                    (255, 0, 0), 2, cv2.LINE_AA)
 
             self.display.update_display(y)
 
@@ -96,9 +100,6 @@ class TactileInferenceFinger(Finger):
 
 
 if __name__ == "__main__":
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # cuda or cpu
-
     with_classifier = False
     leds = 'rrrgggbbb'
     gel = 'markers'
@@ -116,10 +117,11 @@ if __name__ == "__main__":
 
     model = get_model(model_params)
 
-    print('loaded {} with output: {}'.format(model_params['input_type'], model_params['output']))
+    print('Loaded {} with output: {}'.format(model_params['input_type'], model_params['output']))
     model.load_state_dict(torch.load(path_to_dir + model_name + '/model.pth'))
     model.eval()
 
+    touch_classifier = None
     if with_classifier:
         with open(path_to_dir + classifier_name + '/model_params.json', 'rb') as json_file:
             model_params_classify = json.load(json_file)
@@ -129,8 +131,6 @@ if __name__ == "__main__":
                                            classifier=True).to(device)
         touch_classifier.load_state_dict(torch.load(path_to_dir + classifier_name + '/model.pth'))
         touch_classifier.eval()
-    else:
-        touch_classifier = None
 
     _, _, test_transform = get_transforms(int(model_params['image_size']))
 
