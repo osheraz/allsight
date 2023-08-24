@@ -20,14 +20,14 @@ def main():
     save = True
     start_from = 8
     up_to = 11
-    max_press_time = 7.0
-    max_pressure = 6.0
-    save_every_sec = 0.003
+    max_press_time = 10.0
+    max_pressure = 4.0
+    save_every_sec = 0.08
 
-    sensor_id = 11
-    indenter = 'square'
-    leds = 'rrrgggbbb'
-    gel = 'markers'
+    sensor_id = 19
+    indenter = 'sphere3'
+    leds = 'white'
+    gel = 'clear'
     N = 10
 
     conf = {'method': 'tip_press',
@@ -45,7 +45,9 @@ def main():
 
     log = DataLogger(conf)
 
-    Q = np.interp(np.linspace(0, 2 * np.pi, N), [0, 2 * np.pi], [0, 1.0]).tolist()
+    Q_ordered = np.interp(np.linspace(0, 2 * np.pi, 50), [0, 2 * np.pi], [0, 1.0]).tolist()
+    Q = np.random.choice(Q_ordered, N, replace=False)
+
     ros_rate = rospy.Rate(100)
 
     env = ExperimentEnv()
@@ -120,7 +122,7 @@ def main():
 
                         ft = env.arm.robotiq_wrench_filtered_state - ft_init
 
-                        if abs(ft[2]) > max_pressure / 10 and cur_press_time - save_time > save_every_sec:
+                        if abs(ft[2]) > 1.0 and cur_press_time - save_time > save_every_sec:
                             save_time = cur_press_time
                             ft, frame, (trans, rot), (trans_ee, rot_ee) = env.get_obs(i)
                             ft -= ft_init

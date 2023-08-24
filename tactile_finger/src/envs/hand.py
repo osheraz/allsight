@@ -33,12 +33,6 @@ class Hand():
         if dev_names is None:
             dev_names = [4, 6, 8]
 
-        #     tactile = Finger(dev_name=device_id, serial='/dev/video')
-        #
-        #     tactile.connect()
-        #
-        #     tactile.show_view(ref_frame=tactile.get_frame())
-
         self.finger_left = Finger(dev_name=dev_names[1], serial='/dev/video', fix=(0, -18))  # (10,5)
         self.finger_right = Finger(dev_name=dev_names[0], serial='/dev/video', fix=(-7, 10))  # (-7, 0)
         self.finger_bottom = Finger(dev_name=dev_names[2], serial='/dev/video', fix=(8, 3))  # (-5,-10)
@@ -120,8 +114,6 @@ if __name__ == "__main__":
     import os
 
     pc_name = os.getlogin()
-
-    device_id = 0 if pc_name == 'roblab20' else 4
 
     tactile = Hand()
 

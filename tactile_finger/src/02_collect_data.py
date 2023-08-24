@@ -22,14 +22,14 @@ def main():
     start_from = 2
     up_to = 8
     max_press_time = 10.0
-    max_pressure = 5.0
-    save_every_sec = 0.003
+    max_pressure = 2.5
+    save_every_sec = 0.07
 
-    sensor_id = 11
-    indenter = 'sphere4'
-    leds = 'rrrgggbbb'
-    gel = 'markers'
-    N = 15
+    sensor_id = 19
+    indenter = 'sphere3'
+    leds = 'white'
+    gel = 'clear'
+    N = 20
 
     conf = {'method': 'press',
             'save': save,
@@ -46,7 +46,9 @@ def main():
 
     log = DataLogger(conf)
 
-    Q = np.interp(np.linspace(0, 2 * np.pi, N), [0, 2 * np.pi], [0, 1.0]).tolist()
+    Q_ordered = np.interp(np.linspace(0, 2 * np.pi, 50), [0, 2 * np.pi], [0, 1.0]).tolist()
+    Q = np.random.choice(Q_ordered, N, replace=False)
+
     ros_rate = rospy.Rate(100)
 
     env = ExperimentEnv()
@@ -157,11 +159,11 @@ def main():
 
         rospy.loginfo('finished experiment, everything was OK, lets submit'.format(success))
 
-        for q in Q[::-1]:
-
-            rospy.loginfo('Restarting env.')
-            env.finger_base_act.set_angle(q)
-            rospy.sleep(1.0)
+        # for q in Q_ordered[::-1]:
+        #
+        #     rospy.loginfo('Restarting env.')
+        #     env.finger_base_act.set_angle(q)
+        #     rospy.sleep(1.0)
 
 if __name__ == '__main__':
     main()

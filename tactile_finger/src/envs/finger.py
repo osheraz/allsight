@@ -1,13 +1,16 @@
 import numpy as np
 import cv2
-from src.allsight.tactile_finger.src.envs.env_utils.img_utils import ContactArea, circle_mask, align_center
-from src.allsight.tactile_finger.src.envs.env_utils.img_utils import center_mask, _diff, ring_mask
-from src.allsight.tactile_finger.src.envs.env_utils.img_utils import _mask, square_cut
+from env_utils.img_utils import ContactArea, circle_mask, align_center
+from env_utils.img_utils import center_mask, _diff, ring_mask
+from env_utils.img_utils import _mask, square_cut
 
+# src.allsight.tactile_finger.src.envs.
+# src.allsight.tactile_finger.src.envs.
+# src.allsight.tactile_finger.src.envs.
 
 class Finger:
 
-    def __init__(self, serial=None, dev_name=None, fix=(4, 4)):
+    def __init__(self, serial=None, dev_name=None, fix=(10, 6)):
 
         self.serial = serial
         self.name = 'AllSight'
@@ -64,11 +67,33 @@ class Finger:
             frame = cv2.transpose(frame, frame)
             frame = cv2.flip(frame, 0)
 
+        if self.mask is None:
+            self.find_center(frame)
+
         frame = (frame * self.mask).astype(np.uint8)
+        # img_all_blurred = cv2.medianBlur(frame, 9)
+        # frame = np.where(ring_mask() > 0, img_all_blurred, frame)
         frame = align_center(frame, self.mask)
         frame = square_cut(frame)
 
         return frame
+
+    def find_center(self, clear_image):
+
+        depth_image = clear_image.copy()
+        depth_image = cv2.cvtColor(depth_image, cv2.COLOR_RGB2GRAY)
+
+        # Apply the Hough Circle Transform
+        circles = cv2.HoughCircles(depth_image, cv2.HOUGH_GRADIENT, 1, 100, param1=50, param2=10, minRadius=3,
+                                   maxRadius=80)
+
+        if circles is not None:
+            # Convert the (x, y) coordinates and radius of the circles to integers
+            circles = np.round(circles[0, :][0]).astype("int")
+            fix = (int(clear_image.shape[0] // 2 - circles[1]), int(clear_image.shape[1] // 2 - circles[0]))
+            print('Fix Values: {}'.format(fix))
+            self.mask = circle_mask(fix=fix)
+
 
     def find_contact(self, raw_image, ref_frame):
 
@@ -149,7 +174,7 @@ if __name__ == "__main__":
 
     pc_name = os.getlogin()
 
-    device_id = 0 if pc_name == 'roblab20' else 6
+    device_id = 0 if pc_name == 'roblab20' else 4
 
     tactile = Finger(dev_name=device_id, serial='/dev/video')
 
