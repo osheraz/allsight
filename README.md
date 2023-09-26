@@ -89,7 +89,7 @@ Within that interface execute:
 Save the following values:
 <div align="center">
   <img src=".github/vals.png"
-  width="80%">
+  width="60%">
 </div>
 
 ## Scripts
