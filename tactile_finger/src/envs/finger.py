@@ -4,13 +4,28 @@ from env_utils.img_utils import ContactArea, circle_mask, align_center
 from env_utils.img_utils import center_mask, _diff, ring_mask
 from env_utils.img_utils import _mask, square_cut
 
-# src.allsight.tactile_finger.src.envs.
-# src.allsight.tactile_finger.src.envs.
-# src.allsight.tactile_finger.src.envs.
 
 class Finger:
 
-    def __init__(self, serial=None, dev_name=None, fix=(0, 0)): # 10,6
+    def __init__(self, serial=None, dev_name=None, fix=(0, 0)):  # 10,6
+        """
+        Initialize a Finger object.
+
+        Args:
+            serial (str): Serial number or identifier for the Finger.
+            dev_name (str): Device name for capturing video (e.g., camera device).
+            fix (tuple): Fixed position offset for a circular mask.
+
+        Attributes:
+            - serial (str): Serial number or identifier for the Finger.
+            - name (str): Name of the Finger object.
+            - __dev: Internal OpenCV VideoCapture device.
+            - contact (ContactArea): ContactArea object for tactile data.
+            - dev_name (str): Device name for video capture.
+            - resolution (dict): Dictionary with video resolution (width and height).
+            - fps (int): Frames per second for video capture.
+            - mask: Circular mask for video frame processing.
+        """
 
         self.serial = serial
         self.name = 'AllSight'
@@ -28,6 +43,9 @@ class Finger:
             print("Finger object constructed with serial {}".format(self.serial))
 
     def connect(self):
+        """
+        Connect to the Finger by initializing the video capture device.
+        """
         print("{}:Connecting to Finger".format(self.serial))
         self.__dev = cv2.VideoCapture(self.dev_name)
         if not self.__dev.isOpened():
@@ -37,9 +55,7 @@ class Finger:
 
     def init_sensor(self):
         """
-        Sets stream resolution based on supported streams in Finger.STREAMS
-        :param resolution: QVGA or VGA from Finger.STREAMS
-        :return: None
+        Initialize video capture settings (resolution and FPS).
         """
         width = self.resolution["width"]
         height = self.resolution["height"]
@@ -51,9 +67,13 @@ class Finger:
 
     def get_frame(self, transpose=True):
         """
-        Returns a single image frame for the device
-        :param transpose: Show direct output from the image sensor, WxH instead of HxW
-        :return: Image frame array
+        Returns a single image frame from the device.
+
+        Args:
+            transpose (bool): Whether to transpose the image (WxH instead of HxW).
+
+        Returns:
+            numpy.ndarray: Image frame array.
         """
         ret, frame = self.__dev.read()
         if not ret:
@@ -71,15 +91,18 @@ class Finger:
             self.find_center(frame)
 
         frame = (frame * self.mask).astype(np.uint8)
-        # img_all_blurred = cv2.medianBlur(frame, 9)
-        # frame = np.where(ring_mask() > 0, img_all_blurred, frame)
         frame = align_center(frame, self.mask)
         frame = square_cut(frame)
 
         return frame
 
     def find_center(self, clear_image):
+        """
+        Find and set a circular mask for image processing.
 
+        Args:
+            clear_image (numpy.ndarray): Input image for center detection.
+        """
         depth_image = clear_image.copy()
         depth_image = cv2.cvtColor(depth_image, cv2.COLOR_RGB2GRAY)
 
@@ -94,9 +117,17 @@ class Finger:
             print('Fix Values: {}'.format(fix))
             self.mask = circle_mask(fix=fix)
 
-
     def find_contact(self, raw_image, ref_frame):
+        """
+        Find and visualize contact information in the image.
 
+        Args:
+            raw_image (numpy.ndarray): Raw input image.
+            ref_frame (numpy.ndarray): Reference image for contact detection.
+
+        Returns:
+            numpy.ndarray: Processed image with contact information.
+        """
         C = self.contact(raw_image, ref_frame)
 
         if C is not None:
@@ -122,9 +153,13 @@ class Finger:
 
     def show_view(self, ref_frame=None):
         """
-        Creates OpenCV named window with live view of Finger device, ESC to close window
-        :param ref_frame: Specify reference frame to show image difference
-        :return: None
+        Display a live view of the Finger device in an OpenCV window.
+
+        Args:
+            ref_frame (numpy.ndarray): Reference frame for image difference.
+
+        Returns:
+            None
         """
 
         while True:

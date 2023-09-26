@@ -92,10 +92,26 @@ Save the following values:
   width="60%">
 </div>
 
+
+## Usage
+Once you setup AllSight, get the device id by entering the following in your terminal:
+```bash
+v4l2-ctl --list-devices
+```
+Next, in your python script import the [allsight_interface](tactile_finger/src/envs/finger.py) and init your connection by:
+```python
+from allsight_interface import AllSight
+ 
+allsight = AllSight(dev_name=device_id, serial='/dev/video')
+allsight.connect()
+allsight.show_view(ref_frame=allsight.get_frame())
+```
+For multi-AllSight setups, take a look at [hand.py](https://github.com/osheraz/allsight/blob/main/tactile_finger/src/envs/hand.py)
+
 ## Scripts
-- [tactile_finger/src/envs/finger.py](tactile_finger/src/envs/finger.py): AllSight interface.
-- [inference.py](inference.py): live inference script.
+
 - [offline_inference.py](offline_inference.py): offline inference via dataset.
+- [inference.py](inference.py): live inference script.
 - [hand_inference.py](hand_inference.py): live inference script.
 - [train](train/): training scripts.
 
