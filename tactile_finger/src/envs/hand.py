@@ -33,9 +33,9 @@ class Hand():
         if dev_names is None:
             dev_names = [4, 6, 8]
 
-        self.finger_left = Finger(dev_name=dev_names[1], serial='/dev/video', fix=(0, -18))  # (10,5)
-        self.finger_right = Finger(dev_name=dev_names[0], serial='/dev/video', fix=(-7, 10))  # (-7, 0)
-        self.finger_bottom = Finger(dev_name=dev_names[2], serial='/dev/video', fix=(8, 3))  # (-5,-10)
+        self.finger_left = Finger(dev_name=dev_names[1], serial='/dev/video', fix=(0, 0))  # (10,5)
+        self.finger_right = Finger(dev_name=dev_names[0], serial='/dev/video', fix=(0, 0))  # (-7, 0)
+        self.finger_bottom = Finger(dev_name=dev_names[2], serial='/dev/video', fix=(0, 0))  # (-5,-10)
 
         # self.finger_bottom = Finger(dev_name=dev_names[0], serial='/dev/video')
 

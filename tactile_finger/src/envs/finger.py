@@ -10,7 +10,7 @@ from env_utils.img_utils import _mask, square_cut
 
 class Finger:
 
-    def __init__(self, serial=None, dev_name=None, fix=(10, 6)):
+    def __init__(self, serial=None, dev_name=None, fix=(0, 0)): # 10,6
 
         self.serial = serial
         self.name = 'AllSight'

@@ -70,11 +70,29 @@ pip install -r requirements.txt
 ├── allsight_dataset       # dataset and preprocessing scripts
 ```
 
-## Usage
-The default connection method to the AllSight tactile sensor is through usb.
+## Sensor Setup
+For easy plug-and-play support, burn the following [image](https://github.com/showmewebcam/showmewebcam/releases).
+to the Raspberry Pi. This firmware transforms the Raspberry Pi into a high-quality webcam. It works reliably, boots quickly, and gets out of your way.
+(Credits to [show-me-the-webcam](https://github.com/showmewebcam/showmewebcam)).
 
-please follow the camera streaming instructions in [allsight_design](https://docs.google.com/document/d/1w17rNp5aecgzT3BPEN_t8wV7Ci-CQgCzxq583NlFb_A/edit).
+#### Next, it is suggested to adjust camera settings to constant values:
+Open a new terminal and enter to the debugging interface:
+```
+$ ls -l /dev/ttyACM*
+crw-rw---- 1 root dialout 166, 0 sep 25 14:03 /dev/ttyACM0
+$ sudo screen /dev/ttyACM0 115200
+```
+Within that interface execute:
+```bash
+/usr/bin/camera-ctl
+```
+Save the following values:
+<div align="center">
+  <img src=".github/vals.png"
+  width="80%">
+</div>
 
+## Scripts
 - [tactile_finger/src/envs/finger.py](tactile_finger/src/envs/finger.py): AllSight interface.
 - [inference.py](inference.py): live inference script.
 - [offline_inference.py](offline_inference.py): offline inference via dataset.
