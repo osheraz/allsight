@@ -13,7 +13,7 @@ train/evaluation/
 train/utils/contrib/
 calibration/
 simulation/train_history/
-
+catkin_ws/
 # Compiled Python bytecode
 *.py[cod]
 # Log files
