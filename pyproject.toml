@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "allsight"
+version = "0.0.1"
+description = "fun with flags"
+authors = [
+    {name = "Osher Azulay", email = "osheraz@berkeley.edu"},
+]
+license = {text = "MIT Software License"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "tyro",
+    "opencv-python",
+    "tqdm", 
+    "scipy",
+    "matplotlib", 
+    "tyro", 
+    "h5py",
+    "wandb",
+    "zarr==2.12.0", 
+]
+
+[tool.setuptools.packages.find]
+exclude = ["catkin_ws*"]
